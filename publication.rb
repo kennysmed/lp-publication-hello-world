@@ -30,8 +30,11 @@ get '/edition/' do
   
   # Our publication is only delivered on Mondays, so we need to work out if it is a Monday in the subscriber's timezone. 
   date = Time.parse(params['local_delivery_time'])
-  # Return if today is not Monday.
-  return unless date.monday?
+
+  if ! date.monday?
+    etag Digest::MD5.hexdigest('empty' + date.strftime('%d%m%Y'))
+    return 204, 'No publication today'
+  end
   
   # Extract configuration provided by user through BERG Cloud. These options are defined by the JSON in meta.json.
   language = params['lang'];

@@ -1,44 +1,81 @@
-require 'sinatra'
+# encoding: UTF-8
 require 'json'
-
-# Define some greetings for different times of the day in different languages
-greetings = {"english" => ["Good morning", "Hello", "Good evening"], 
-    "french" => ["Bonjour", "Bonjour", "Bonsoir"], 
-    "german" => ["Guten morgen", "Hallo" "Guten abend"], 
-    "spanish" =>["Buenos d&#237;as", "Hola", "Buenas noches"], 
-    "portuguese" => ["Bom dia", "Ol&#225;", "Boa noite"], 
-    "italian" => ["Buongiorno", "ciao", "Buonasera"], 
-    "swedish"=>["God morgon", "Hall&#229;", "God kv&#228;ll"]}
+require 'sinatra'
 
 
-# Prepares and returns this edition of the publication
+configure do
+  # Define greetings for different times of the day in different languages.
+  set :greetings, {
+    'english'    => ['Good morning', 'Hello', 'Good evening'], 
+    'french'     => ['Bonjour', 'Bonjour', 'Bonsoir'], 
+    'german'     => ['Guten morgen', 'Hallo', 'Guten abend'], 
+    'spanish'    => ['Buenos días', 'Hola', 'Buenas noches'], 
+    'portuguese' => ['Bom dia', 'Olá', 'Boa noite'], 
+    'italian'    => ['Buongiorno', 'Ciao', 'Buonasera'], 
+    'swedish'     => ['God morgon', 'Hallå', 'God kväll']
+  }
+end
+
+
+get '/' do
+  return 'A Little Printer publication.'
+end
+
+
+# Called to generate the sample shown on BERG Cloud Remote.
+#
+# == Parameters:
+#   None.
+#
+# == Returns:
+# HTML/CSS edition.
+#
+get '/sample/' do
+  @greeting = "#{settings.greetings[:english][0]}, Little Printer"
+  erb :edition
+end
+
+
+# Prepares and returns an edition of the publication.
 #
 # == Parameters:
 # lang
-#   The language for the greeting. The subscriber will have picked this from the values defined in meta.json.
+#   The language for the greeting.
+#   The subscriber will have picked this from the values defined in meta.json.
 # name
-#   The name of the person to greet. The subscriber will have entered their name at the subscribe stage.
+#   The name of the person to greet.
+#   The subscriber will have entered their name at the subscribe stage.
 # local_delivery_time
 #   The local time where the subscribed bot is.
-# == Returns:
-# HTML/CSS edition with etag. This publication changes the greeting depending on the time of day. It is using UTC to determine the greeting.
 #
+# == Returns:
+# HTML/CSS edition with ETag.
+# 
 get '/edition/' do
-  return 400, 'Error: No local_delivery_time was provided' if params['local_delivery_time'].nil?
-  return 400, 'Error: No lang was provided' if params['lang'].nil?
-  return 400, 'Error: No name was provided' if params['name'].nil?
-  
-  # Our publication is only delivered on Mondays, so we need to work out if it is a Monday in the subscriber's timezone. 
-  date = Time.parse(params['local_delivery_time'])
-
-  if ! date.monday?
-    etag Digest::MD5.hexdigest('empty' + date.strftime('%d%m%Y'))
-    return 204, 'No publication today'
+  if params[:lang].nil? || ! settings.greetings.include?(params[:lang])
+    return 400, 'Error: Invalid or missing lang parameter'
+  end
+  if params[:name].nil? || params[:name] == ''
+    return 400, 'Error: No name provided'
   end
   
-  # Extract configuration provided by user through BERG Cloud. These options are defined by the JSON in meta.json.
-  language = params['lang'];
-  name = params['name'];
+  # local_delivery_time is like '2013-10-16T23:20:30-08:00'.
+  begin
+    date = DateTime.parse(params[:local_delivery_time])
+  rescue
+    return 400, 'Error: Invalid or missing local_delivery_time'
+  end
+
+  # The publication is only delivered on Mondays, so if it's not a Monday in
+  # the subscriber's timezone, we return nothing but a 204 status.
+  if ! date.monday?
+    return 204
+  end
+  
+  # Extract configuration provided by user through BERG Cloud.
+  # These options are defined in meta.json.
+  language = params[:lang]
+  name = params[:name]
   
   # Pick a time of day appropriate greeting
   i = 1
@@ -52,77 +89,64 @@ get '/edition/' do
     i = 2
   end
 
-  # Set the etag to be this content. This means the user will not get the same content twice, 
-  # but if they reset their subscription (with, say, a different language they will get new content 
-  # if they also set their subscription to be in the future)
+  # Base the ETag on the unique content: language, name and date.
+  # This means the user will not get the same content twice.
+  # But, if they reset their subscription (with, say, a different language)
+  # they will get new content.
   etag Digest::MD5.hexdigest(language+name+date.strftime('%d%m%Y'))
   
-  # Build this edition.
-  @greeting = "#{greetings[language][i]}, #{name}"
+  @greeting = "#{settings.greetings[language][i]}, #{name}"
   
-  erb :hello_world
+  erb :edition
 end
 
 
-# Returns a sample of the publication. Triggered by the user hitting 'print sample' on you publication's page on BERG Cloud.
-#
-# == Parameters:
-#   None.
-#
-# == Returns:
-# HTML/CSS edition with etag. This publication changes the greeting depending on the time of day. It is using UTC to determine the greeting.
-#
-get '/sample/' do
-  language = 'english';
-  name = 'Little Printer';
-  @greeting = "#{greetings[language][0]}, #{name}"
-  # Set the etag to be this content
-  etag Digest::MD5.hexdigest(language+name)
-  erb :hello_world
-end
-
-
-#
 # == Parameters:
 # :config
-#   params[:config] contains a JSON array of responses to the options defined by the fields object in meta.json.
-#   in this case, something like:
+#   params[:config] contains a JSON array of responses to the options defined
+#   by the fields object in meta.json. In this case, something like:
 #   params[:config] = ["name":"SomeName", "lang":"SomeLanguage"]
 #
 # == Returns:
-# a response json object.
-# If the paramters passed in are valid: {"valid":true}
-# If the paramters passed in are not valid: {"valid":false,"errors":["No name was provided"], ["The language you chose does not exist"]}"
+# A JSON response object.
+# If the parameters passed in are valid: {"valid":true}
+# If the parameters passed in are not valid: {"valid":false,"errors":["No name was provided"], ["The language you chose does not exist"]}
 #
 post '/validate_config/' do
-  response = {}
-  response[:errors] = []
-  response[:valid] = true
-  
   if params[:config].nil?
-    return 400, "You did not post any config to validate"
+    return 400, 'There is no config to validate.'
   end
-  # Extract config from POST
+
+  # Preparing what will be returned:
+  response = {
+    :errors => [],
+    :valid => true
+  }
+
+  # Extract the config from the POST data and parse its JSON contents.
+  # user_settings will be something like: {"name":"Alice", "lang":"english"}.
   user_settings = JSON.parse(params[:config])
 
   # If the user did choose a language:
-  if user_settings['lang'].nil? || user_settings['lang']==""
+  if user_settings[:lang].nil? || user_settings[:lang] == ''
     response[:valid] = false
-    response[:errors].push('Please select a language from the select box.')
+    response[:errors] << 'Please choose a language from the menu.'
   end
   
   # If the user did not fill in the name option:
-  if user_settings['name'].nil? || user_settings['name']==""
+  if user_settings[:name].nil? || user_settings[:name] == ''
     response[:valid] = false
-    response[:errors].push('Please enter your name into the name box.')
+    response[:errors] << 'Please enter your name into the name box.'
   end
   
-  unless greetings.include?(user_settings['lang'].downcase)
-    # Given that that select box is populated from a list of languages that we have defined this should never happen.
+  unless settings.greetings.include?(user_settings[:lang].downcase)
+    # Given that the select field is populated from a list of languages
+    # we defined this should never happen. Just in case.
     response[:valid] = false
-    response[:errors].push("We couldn't find the language you selected (#{user_settings['lang']}) Please select another")
+    response[:errors] << "We couldn't find the language you selected (#{user_settings[:lang]}). Please choose another."
   end
   
   content_type :json
   response.to_json
 end
+

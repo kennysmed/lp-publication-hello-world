@@ -88,7 +88,7 @@ get '/edition/' do
   when 0..3
     i = 2
   end
-'
+
   # Base the ETag on the unique content: language, name and date.
   # This means the user will not get the same content twice.
   # But, if they reset their subscription (with, say, a different language)

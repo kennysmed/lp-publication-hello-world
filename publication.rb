@@ -31,7 +31,7 @@ end
 # HTML/CSS edition.
 #
 get '/sample/' do
-  @greeting = "#{settings.greetings[:english][0]}, Little Printer"
+  @greeting = "#{settings.greetings['english'][0]}, Little Printer"
   erb :edition
 end
 

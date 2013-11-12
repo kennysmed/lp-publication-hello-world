@@ -31,7 +31,11 @@ end
 # HTML/CSS edition.
 #
 get '/sample/' do
-  @greeting = "#{settings.greetings['english'][0]}, Little Printer"
+  language = 'english';
+  name = 'Little Printer';
+  @greeting = "#{settings.greetings[language][0]}, #{name}"
+  # Set the ETag to match the content.
+  etag Digest::MD5.hexdigest(language+name)
   erb :edition
 end
 

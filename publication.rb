@@ -74,8 +74,8 @@ get '/edition/' do
   
   # Extract configuration provided by user through BERG Cloud.
   # These options are defined in meta.json.
-  language = params[:lang]
-  name = params[:name]
+  language = params['lang']
+  name = params['name']
   
   # Pick a time of day appropriate greeting
   i = 1

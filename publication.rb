@@ -74,8 +74,8 @@ get '/edition/' do
   
   # Extract configuration provided by user through BERG Cloud.
   # These options are defined in meta.json.
-  language = params['lang']
-  name = params['name']
+  language = params[:lang]
+  name = params[:name]
   
   # Pick a time of day appropriate greeting
   i = 1
@@ -129,22 +129,22 @@ post '/validate_config/' do
   p user_settings
 
   # If the user did choose a language:
-  if user_settings[:lang].nil? || user_settings[:lang] == ''
+  if user_settings['lang'].nil? || user_settings['lang'] == ''
     response[:valid] = false
     response[:errors] << 'Please choose a language from the menu.'
   end
   
   # If the user did not fill in the name option:
-  if user_settings[:name].nil? || user_settings[:name] == ''
+  if user_settings['name'].nil? || user_settings['name'] == ''
     response[:valid] = false
     response[:errors] << 'Please enter your name into the name box.'
   end
   
-  unless settings.greetings.include?(user_settings[:lang].downcase)
+  unless settings.greetings.include?(user_settings['lang'].downcase)
     # Given that the select field is populated from a list of languages
     # we defined this should never happen. Just in case.
     response[:valid] = false
-    response[:errors] << "We couldn't find the language you selected (#{user_settings[:lang]}). Please choose another."
+    response[:errors] << "We couldn't find the language you selected (#{user_settings['lang']}). Please choose another."
   end
   
   content_type :json

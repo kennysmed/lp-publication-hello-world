@@ -88,7 +88,7 @@ get '/edition/' do
   when 0..3
     i = 2
   end
-
+'
   # Base the ETag on the unique content: language, name and date.
   # This means the user will not get the same content twice.
   # But, if they reset their subscription (with, say, a different language)
@@ -126,6 +126,7 @@ post '/validate_config/' do
   # Extract the config from the POST data and parse its JSON contents.
   # user_settings will be something like: {"name":"Alice", "lang":"english"}.
   user_settings = JSON.parse(params[:config])
+  p user_settings
 
   # If the user did choose a language:
   if user_settings[:lang].nil? || user_settings[:lang] == ''

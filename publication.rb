@@ -6,12 +6,12 @@ require 'sinatra'
 configure do
   # Define greetings for different times of the day in different languages.
   set :greetings, {
-    'english'    => ['Good morning', 'Hello', 'Good evening'], 
-    'french'     => ['Bonjour', 'Bonjour', 'Bonsoir'], 
-    'german'     => ['Guten morgen', 'Hallo', 'Guten abend'], 
-    'spanish'    => ['Buenos días', 'Hola', 'Buenas noches'], 
-    'portuguese' => ['Bom dia', 'Olá', 'Boa noite'], 
-    'italian'    => ['Buongiorno', 'Ciao', 'Buonasera'], 
+    'english'     => ['Good morning', 'Hello', 'Good evening'], 
+    'french'      => ['Bonjour', 'Bonjour', 'Bonsoir'], 
+    'german'      => ['Guten morgen', 'Hallo', 'Guten abend'], 
+    'spanish'     => ['Buenos días', 'Hola', 'Buenas noches'], 
+    'portuguese'  => ['Bom dia', 'Olá', 'Boa noite'], 
+    'italian'     => ['Buongiorno', 'Ciao', 'Buonasera'], 
     'swedish'     => ['God morgon', 'Hallå', 'God kväll']
   }
 end

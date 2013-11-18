@@ -22,90 +22,6 @@ get '/' do
 end
 
 
-# Called to generate the sample shown on BERG Cloud Remote.
-#
-# == Parameters:
-#   None.
-#
-# == Returns:
-# HTML/CSS edition.
-#
-get '/sample/' do
-  # The values we'll use for the sample:
-  language = 'english';
-  name = 'Little Printer';
-  @greeting = "#{settings.greetings[language][0]}, #{name}"
-  # Set the ETag to match the content.
-  etag Digest::MD5.hexdigest(language + name + Time.now.utc.strftime('%d%m%Y'))
-  erb :edition
-end
-
-
-# Prepares and returns an edition of the publication.
-#
-# == Parameters:
-# lang
-#   The language for the greeting.
-#   The subscriber will have picked this from the values defined in meta.json.
-# name
-#   The name of the person to greet.
-#   The subscriber will have entered their name at the subscribe stage.
-# local_delivery_time
-#   The local time where the subscribed bot is.
-#
-# == Returns:
-# HTML/CSS edition with ETag.
-# 
-get '/edition/' do
-  # Extract configuration provided by user through BERG Cloud.
-  # These options are defined in meta.json.
-  language = params.fetch(:lang, '')
-  name = params.fetch(:name, '')
-
-  if language == '' || ! settings.greetings.include?(language)
-    return 400, 'Error: Invalid or missing lang parameter'
-  end
-  if name == '' 
-    return 400, 'Error: No name provided'
-  end
-  
-  begin
-    # local_delivery_time is like '2013-10-16T23:20:30-08:00'.
-    date = DateTime.parse(params[:local_delivery_time])
-  rescue
-    return 400, 'Error: Invalid or missing local_delivery_time'
-  end
-
-  # The publication is only delivered on Mondays, so if it's not a Monday in
-  # the subscriber's timezone, we return nothing but a 204 status.
-  if ! date.monday?
-    return 204
-  end
-  
-  # Pick a time of day appropriate greeting
-  i = 1
-  case date.hour
-  when 4..11
-    i = 0
-  when 12..17
-    i = 1
-  when 18..24
-  when 0..3
-    i = 2
-  end
-
-  # Base the ETag on the unique content: language, name and time/date.
-  # This means the user will not get the same content twice.
-  # But, if they reset their subscription (with, say, a different language)
-  # they will get new content.
-  etag Digest::MD5.hexdigest(language+name+date.strftime('%H%d%m%Y'))
-  
-  @greeting = "#{settings.greetings[language][i]}, #{name}"
-  
-  erb :edition
-end
-
-
 # == POST parameters:
 # :config
 #   params[:config] contains a JSON array of responses to the options defined
@@ -154,4 +70,89 @@ post '/validate_config/' do
   content_type :json
   response.to_json
 end
+
+
+# Called to generate the sample shown on BERG Cloud Remote.
+#
+# == Parameters:
+#   None.
+#
+# == Returns:
+# HTML/CSS edition.
+#
+get '/sample/' do
+  # The values we'll use for the sample:
+  language = 'english';
+  name = 'Little Printer';
+  @greeting = "#{settings.greetings[language][0]}, #{name}"
+  # Set the ETag to match the content.
+  etag Digest::MD5.hexdigest(language + name + Time.now.utc.strftime('%d%m%Y'))
+  erb :edition
+end
+
+
+# Prepares and returns an edition of the publication.
+#
+# == Parameters:
+# lang
+#   The language for the greeting.
+#   The subscriber will have picked this from the values defined in meta.json.
+# name
+#   The name of the person to greet.
+#   The subscriber will have entered their name at the subscribe stage.
+# local_delivery_time
+#   The local time where the subscribed bot is.
+#
+# == Returns:
+# HTML/CSS edition with ETag.
+# 
+get '/edition/' do
+  # Extract configuration provided by user through BERG Cloud.
+  # These options are defined in meta.json.
+  language = params.fetch(:lang, '')
+  name = params.fetch(:name, '')
+
+  if language == '' || ! settings.greetings.include?(language)
+    return 400, 'Error: Invalid or missing lang parameter'
+  end
+  if name == '' 
+    return 400, 'Error: No name provided'
+  end
+  
+  begin
+    # local_delivery_time is like '2013-11-18T23:20:30-08:00'.
+    date = DateTime.parse(params[:local_delivery_time])
+  rescue
+    return 400, 'Error: Invalid or missing local_delivery_time'
+  end
+
+  # The publication is only delivered on Mondays, so if it's not a Monday in
+  # the subscriber's timezone, we return nothing but a 204 status.
+  if ! date.monday?
+    return 204
+  end
+  
+  # Pick a time of day appropriate greeting.
+  i = 1
+  case date.hour
+  when 4..11
+    i = 0
+  when 12..17
+    i = 1
+  when 18..24
+  when 0..3
+    i = 2
+  end
+
+  # Base the ETag on the unique content: language, name and time/date.
+  # This means the user will not get the same content twice.
+  # But, if they reset their subscription (with, say, a different language)
+  # they will get new content.
+  etag Digest::MD5.hexdigest(language + name + date.strftime('%H%d%m%Y'))
+  
+  @greeting = "#{settings.greetings[language][i]}, #{name}"
+  
+  erb :edition
+end
+
 

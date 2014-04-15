@@ -109,8 +109,8 @@ end
 get '/edition/' do
   # Extract configuration provided by user through BERG Cloud.
   # These options are defined in meta.json.
-  language = params.fetch(:lang, '')
-  name = params.fetch(:name, '')
+  language = params.fetch('lang', '')
+  name = params.fetch('name', '')
 
   if language == '' || ! settings.greetings.include?(language)
     return 400, 'Error: Invalid or missing lang parameter'
